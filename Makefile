@@ -48,7 +48,7 @@ $(BUILD_DIR)/os.bin: $(BUILD_DIR)/boot.bin $(BUILD_DIR)/full_kernel.bin $(BUILD_
 	cat $^ > $@
 
 run: $(BUILD_DIR)/os.bin
-	$(QEMU) -drive format=raw,file=$<,index=0,if=floppy -m 128M
+	$(QEMU) -cpu qemu32 -drive format=raw,file=$<,index=0,if=floppy -m 128M
 
 clean:
 	rm -rf $(BUILD_DIR)

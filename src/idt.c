@@ -2,11 +2,6 @@
 #include <string.h>
 #include <vga_terminal.h>
 
-#define idt_sel 0x08
-#define idt_flags 0x8E
-
-extern void divide_stub();
-
 /* Defines an IDT entry */
 struct idt_entry
 {
@@ -49,6 +44,25 @@ void idt_set_gate(unsigned char num, unsigned long base, unsigned short sel, uns
     idt[num].flags = flags;
 }
 
+#define idt_sel 0x08
+#define idt_flags 0x8E
+
+extern void divide_stub();
+extern void debug_stub();
+extern void nmi_stub();
+extern void breakpoint_stub();
+extern void overflow_stub();
+extern void bound_stub();
+extern void opcode_stub();
+extern void device_stub();
+extern void double_stub();
+extern void tss_stub();
+extern void segment_stub();
+extern void stack_stub();
+extern void general_stub();
+extern void page_stub();
+extern void alignment_stub();
+
 /* Installs the IDT */
 void idt_install()
 {
@@ -61,6 +75,21 @@ void idt_install()
 
     /* Add any new ISRs to the IDT here using idt_set_gate */
     idt_set_gate(0, (unsigned long)divide_stub, idt_sel, idt_flags);
+    idt_set_gate(1, (unsigned long)debug_stub, idt_sel, idt_flags);
+    idt_set_gate(2, (unsigned long)nmi_stub, idt_sel, idt_flags);
+    idt_set_gate(3, (unsigned long)breakpoint_stub, idt_sel, idt_flags);
+    idt_set_gate(4, (unsigned long)overflow_stub, idt_sel, idt_flags);
+    idt_set_gate(5, (unsigned long)bound_stub, idt_sel, idt_flags);
+    idt_set_gate(6, (unsigned long)opcode_stub, idt_sel, idt_flags);
+    idt_set_gate(7, (unsigned long)device_stub, idt_sel, idt_flags);
+    idt_set_gate(8, (unsigned long)double_stub, idt_sel, idt_flags);
+    idt_set_gate(10, (unsigned long)tss_stub, idt_sel, idt_flags);
+    idt_set_gate(11, (unsigned long)segment_stub, idt_sel, idt_flags);
+    idt_set_gate(12, (unsigned long)stack_stub, idt_sel, idt_flags);
+    idt_set_gate(13, (unsigned long)general_stub, idt_sel, idt_flags);
+    idt_set_gate(14, (unsigned long)page_stub, idt_sel, idt_flags);
+    idt_set_gate(17, (unsigned long)alignment_stub, idt_sel, idt_flags);
+
 
     /* Points the processor's internal register to the new IDT */
     idt_load();
