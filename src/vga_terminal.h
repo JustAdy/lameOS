@@ -1,3 +1,5 @@
+#ifndef VGA_TERMINAL_H
+#define VGA_TERMINAL_H
 #include <stdint.h>
 #include <stddef.h>
 
@@ -18,8 +20,14 @@
 #define YELLOW 14
 #define WHITE 15
 
-void put_char(char c, uint8_t foreground, uint8_t background);
+void set_colors(uint8_t foreground, uint8_t background);
 
-void print_string(char* string, uint8_t foreground, uint8_t background);
+void put_char(char c);
+
+void print_string(char* string);
+
+void print_long(long number);
 
 void clear_screen(uint8_t background);
+
+#endif

@@ -13,7 +13,7 @@ C_SRCS := $(wildcard $(SRC_DIR)/*.c)
 C_OBJS := $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(C_SRCS))
 
 # kernel_entry.o must come first so it lands at the kernel's load address
-KERNEL_OBJS := $(BUILD_DIR)/kernel_entry.o $(C_OBJS)
+KERNEL_OBJS := $(BUILD_DIR)/kernel_entry.o $(C_OBJS) $(BUILD_DIR)/idt_load.o $(BUILD_DIR)/idt_stubs.o
 
 .PHONY: all run clean
 
@@ -27,6 +27,12 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/kernel_entry.o: $(SRC_DIR)/kernel_entry.asm | $(BUILD_DIR)
+	$(NASM) $< -f elf -o $@
+
+$(BUILD_DIR)/idt_load.o: $(SRC_DIR)/idt_load.asm | $(BUILD_DIR)
+	$(NASM) $< -f elf -o $@
+
+$(BUILD_DIR)/idt_stubs.o: $(SRC_DIR)/idt_stubs.asm | $(BUILD_DIR)
 	$(NASM) $< -f elf -o $@
 
 $(BUILD_DIR)/full_kernel.bin: $(KERNEL_OBJS)

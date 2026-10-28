@@ -8,9 +8,16 @@
 static size_t row = 0;
 static size_t column = 0;
 
-void put_char(char c, uint8_t foreground, uint8_t background)
+static uint8_t attribute = 0;
+
+void set_colors(uint8_t foreground, uint8_t background)
 {
-    VGA_BUFFER[row * VGA_WIDTH + column] = background << 12 | foreground << 8 | c;
+    attribute = background << 4 | foreground;
+}
+
+void put_char(char c)
+{
+    VGA_BUFFER[row * VGA_WIDTH + column] = attribute << 8 | c;
 
     if(++column == VGA_WIDTH)
     {
@@ -19,7 +26,7 @@ void put_char(char c, uint8_t foreground, uint8_t background)
     }
 }
 
-void print_string(char string[], uint8_t foreground, uint8_t background)
+void print_string(char string[])
 {
     int index = 0;
     while (string[index] != 0)
@@ -40,11 +47,48 @@ void print_string(char string[], uint8_t foreground, uint8_t background)
                 break;
         
             default:
-                put_char(string[index], foreground, background);
+                put_char(string[index]);
                 break;
         }
         index++;
     }
+}
+
+void print_long(long number)
+{
+    if (number < 0)
+    {
+        put_char('-');
+        number *= -1;
+    }
+
+    if (number != 0)
+    {
+        char reversed_str[11];
+        char mod = 0;
+        char index = 1;
+        reversed_str[0] = '\0';
+        while(number)
+        {
+            mod = number % 10;
+            mod += 0x30;
+            reversed_str[index++] = mod;
+            number /= 10;
+        }
+    
+        index--;
+        
+        while(index)
+        {
+            put_char(reversed_str[index--]);
+        }
+    }
+
+    else if (number == 0)
+    {
+        put_char('0');
+    }
+
 }
 
 void clear_screen(uint8_t background)
