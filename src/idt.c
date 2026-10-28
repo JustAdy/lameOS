@@ -1,6 +1,9 @@
 #include <system.h>
 #include <string.h>
+#include <stdint.h>
 #include <vga_terminal.h>
+
+void pic_remap();
 
 /* Defines an IDT entry */
 struct idt_entry
@@ -62,10 +65,13 @@ extern void stack_stub();
 extern void general_stub();
 extern void page_stub();
 extern void alignment_stub();
+extern void timer_irq_stub();
 
 /* Installs the IDT */
 void idt_install()
 {
+    pic_remap();
+
     /* Sets the special IDT pointer up*/
     idtp.limit = (sizeof (struct idt_entry) * 256) - 1;
     idtp.base = (unsigned int)idt;
@@ -90,9 +96,13 @@ void idt_install()
     idt_set_gate(14, (unsigned long)page_stub, idt_sel, idt_flags);
     idt_set_gate(17, (unsigned long)alignment_stub, idt_sel, idt_flags);
 
+    idt_set_gate(32, (unsigned long)timer_irq_stub, idt_sel, idt_flags);
 
     /* Points the processor's internal register to the new IDT */
     idt_load();
+
+    outb(0x21, 0xFE);
+    asm ("sti");
 }
 
 struct stack_frame
@@ -127,3 +137,50 @@ void ISR(struct stack_frame *frame)
         asm volatile ("hlt");
     
 }
+
+void timer_irq();
+
+void IRQ(struct stack_frame *frame)
+{
+    switch (frame->vector)
+    {
+        case 32:
+        timer_irq();
+        break;
+        
+        default:
+        break;
+    }
+}
+
+void timer_irq()
+{
+    outb(0x40, 0xFF); // Low byte of 65535
+    outb(0x40, 0xFF); // High byte of 65535
+    print_string("Timer");
+    outb(0x20, 0x20);
+}
+
+void pic_remap()
+{
+    /* ICW1: begin initialization */
+    outb(0x20, 0x11);
+    outb(0xA0, 0x11);
+
+    /* ICW2: vector offsets */
+    outb(0x21, 0x20);  // Master: IRQ 0–7 -> vectors 32–39
+    outb(0xA1, 0x28);  // Slave: IRQ 8–15 -> vectors 40–47
+
+    /* ICW3: master/slave wiring */
+    outb(0x21, 0x04);  // Slave connected to master's IRQ2
+    outb(0xA1, 0x02);  // Slave identity is 2
+
+    /* ICW4: 8086/88 mode */
+    outb(0x21, 0x01);
+    outb(0xA1, 0x01);
+
+    /* Mask all IRQs until handlers are ready */
+    outb(0x21, 0xFF);
+    outb(0xA1, 0xFF);
+}
+

@@ -16,5 +16,10 @@ extern void main()
 
     print_string(name);
 
+    outb(0x43, 0x36);
+
+    outb(0x40, 0xFF); // Low byte of 65535
+    outb(0x40, 0xFF); // High byte of 65535
+
     return;
 }

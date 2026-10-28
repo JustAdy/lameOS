@@ -94,3 +94,22 @@ common_ISR:
     popad
     add esp, 8
     iret
+
+; IRQ
+
+global timer_irq_stub
+timer_irq_stub:
+    push 32
+    push 32
+    jmp common_IRQ
+
+global common_IRQ
+extern IRQ
+common_IRQ:
+    pushad
+    push esp
+    call IRQ
+    add esp, 4
+    popad
+    add esp, 8
+    iret
