@@ -17,39 +17,41 @@ void set_colors(uint8_t foreground, uint8_t background)
 
 void put_char(char c)
 {
-    VGA_BUFFER[row * VGA_WIDTH + column] = attribute << 8 | c;
-
-    if(++column == VGA_WIDTH)
+    switch (c)
     {
-        column = 0;
-        row++;
+        case '\n':
+            column = 0;
+            row++;
+            break;
+        
+        case '\t':
+            column += 4;
+            break;
+
+        case '\r':
+            column = 0;
+            break;
+    
+        default:
+            VGA_BUFFER[row * VGA_WIDTH + column] = attribute << 8 | c;
+
+            if(++column == VGA_WIDTH)
+            {
+                column = 0;
+                row++;
+            }
+            break;
     }
+
+    
 }
 
 void print_string(char string[])
 {
     int index = 0;
     while (string[index] != 0)
-    {
-        switch (string[index])
-        {
-            case '\n':
-                column = 0;
-                row++;
-                break;
-            
-            case '\t':
-                column += 4;
-                break;
-
-            case '\r':
-                column = 0;
-                break;
-        
-            default:
-                put_char(string[index]);
-                break;
-        }
+    {      
+        put_char(string[index]);
         index++;
     }
 }
