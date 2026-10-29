@@ -3,6 +3,8 @@ LD      := i686-elf-ld
 NASM    := nasm
 QEMU    := qemu-system-x86_64
 
+OBJCOPY := i686-elf-objcopy
+
 SRC_DIR   := src
 BUILD_DIR := build
 
@@ -37,8 +39,11 @@ $(BUILD_DIR)/idt_load.o: $(SRC_DIR)/interupts/idt_load.asm | $(BUILD_DIR)
 $(BUILD_DIR)/idt_stubs.o: $(SRC_DIR)/interupts/idt_stubs.asm | $(BUILD_DIR)
 	$(NASM) $< -f elf -o $@
 
-$(BUILD_DIR)/full_kernel.bin: $(KERNEL_OBJS)
-	$(LD) -o $@ -Ttext $(KERNEL_ADDR) $^ --oformat binary
+$(BUILD_DIR)/full_kernel.elf: $(KERNEL_OBJS) $(SRC_DIR)/linker.ld
+	$(LD) -T $(SRC_DIR)/linker.ld -o $@ $(KERNEL_OBJS)
+
+$(BUILD_DIR)/full_kernel.bin: $(BUILD_DIR)/full_kernel.elf
+	$(OBJCOPY) -O binary $< $@
 
 $(BUILD_DIR)/boot.bin: $(SRC_DIR)/bootloader/bootloader.asm | $(BUILD_DIR)
 	$(NASM) $< -f bin -o $@

@@ -29,4 +29,10 @@ void idt_install(void);
 
 void pic_unmask_irq(uint8_t irq);
 
+void alloc_init();
+
+void* malloc(size_t bytes);
+
+void free(void* ptr, size_t bytes);
+
 #endif
