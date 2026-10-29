@@ -18,7 +18,7 @@ void set_colors(uint8_t foreground, uint8_t background)
 
 void scroll()
 {
-    memcpy((void* restrict)VGA_BUFFER, (void* restrict)(VGA_BUFFER + VGA_WIDTH), VGA_HEIGHT * VGA_WIDTH - VGA_HEIGHT);
+    memcpy((void* restrict)VGA_BUFFER, (void* restrict)(VGA_BUFFER + VGA_WIDTH), (VGA_HEIGHT * VGA_WIDTH - VGA_HEIGHT) * 2);
     for(size_t col = 0; col < VGA_WIDTH; col++)
     {
         VGA_BUFFER[(VGA_HEIGHT - 1) * VGA_WIDTH + col] = attribute << 8 | '\0';
@@ -46,21 +46,20 @@ void put_char(char c)
     
         default:
             VGA_BUFFER[row * VGA_WIDTH + column] = attribute << 8 | c;
-
-            if (++column == VGA_WIDTH)
-            {
-                column = 0;
-                row++;
-            }
-
-            if (row == VGA_HEIGHT)
-            {
-                scroll();
-            }
+            column++;
             break;
     }
 
-    
+    if (column >= VGA_WIDTH)
+    {
+        column = 0;
+        row++;
+    }
+
+    while (row >= VGA_HEIGHT)
+    {
+        scroll();
+    }
 }
 
 void print_string(char string[])
