@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <vga_terminal.h>
+#include <keyboard.h>
 
 void pic_remap();
 
@@ -65,7 +66,9 @@ extern void stack_stub();
 extern void general_stub();
 extern void page_stub();
 extern void alignment_stub();
+
 extern void timer_irq_stub();
+extern void keyboard_irq_stub();
 
 /* Installs the IDT */
 void idt_install()
@@ -97,11 +100,16 @@ void idt_install()
     idt_set_gate(17, (unsigned long)alignment_stub, idt_sel, idt_flags);
 
     idt_set_gate(32, (unsigned long)timer_irq_stub, idt_sel, idt_flags);
+    idt_set_gate(33, (unsigned long)keyboard_irq_stub, idt_sel, idt_flags);
+
 
     /* Points the processor's internal register to the new IDT */
     idt_load();
 
-    outb(0x21, 0xFE);
+    //pic_unmask_irq(0); // PIT timer
+    pic_unmask_irq(1); // Keyboard
+    //pic_unmask_irq(12); // Typically PS/2 mouse
+    //pic_unmask_irq(2);  // Enable master/slave cascade
     asm ("sti");
 }
 
@@ -122,43 +130,42 @@ struct stack_frame
     unsigned long eflags;
 } __attribute__((packed));
 
-void ISR(struct stack_frame *frame)
+void timer_irq()
 {
-    unsigned long instruction = frame->eip;
-    print_string("Error occurred while executing instruction at address: ");
-    print_long(instruction);
-    put_char('\n');
-    print_long(frame->vector);
-    put_char('\t');
-    print_long(frame->error_code);
-
-    asm volatile ("cli");
-    for (;;)
-        asm volatile ("hlt");
-    
+    outb(0x20, 0x20);
 }
 
-void timer_irq();
 
-void IRQ(struct stack_frame *frame)
+
+void ISR(struct stack_frame *frame)
 {
+    if (frame->vector < 32)
+    {
+        unsigned long instruction = frame->eip;
+        print_string("Error occurred while executing instruction at address: ");
+        print_long(instruction);
+        put_char('\n');
+        print_long(frame->vector);
+        put_char('\t');
+        print_long(frame->error_code);
+    
+        asm volatile ("cli");
+        for (;;)
+            asm volatile ("hlt");
+    }
+
     switch (frame->vector)
     {
         case 32:
-        timer_irq();
-        break;
-        
+            timer_irq();
+            break;
+        case 33:
+            keyboard_irq_handler();
+            outb(0x20, 0x20);
+            break;
         default:
         break;
     }
-}
-
-void timer_irq()
-{
-    outb(0x40, 0xFF); // Low byte of 65535
-    outb(0x40, 0xFF); // High byte of 65535
-    print_string("Timer");
-    outb(0x20, 0x20);
 }
 
 void pic_remap()
@@ -184,3 +191,19 @@ void pic_remap()
     outb(0xA1, 0xFF);
 }
 
+void pic_unmask_irq(uint8_t irq)
+{
+    uint16_t port;
+    uint8_t mask;
+
+    if (irq < 8) {
+        port = 0x21;
+    } else {
+        port = 0xA1;
+        irq -= 8;
+    }
+
+    mask = inb(port);
+    mask &= ~(1u << irq);
+    outb(port, mask);
+}
