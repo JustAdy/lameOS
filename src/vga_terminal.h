@@ -22,6 +22,8 @@
 
 void set_colors(uint8_t foreground, uint8_t background);
 
+void update_cursor(uint8_t x, uint8_t y);
+
 void put_char(char c);
 
 void print_string(char* string);

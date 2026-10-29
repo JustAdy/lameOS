@@ -1,19 +1,30 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <string.h>
+#include <system.h>
 
 #define VGA_WIDTH  80
 #define VGA_HEIGHT 25
 #define VGA_BUFFER ((volatile uint16_t*)0xB8000)
 
-static size_t row = 0;
-static size_t column = 0;
+static int8_t row = 0;
+static int8_t column = 0;
 
 static uint8_t attribute = 0;
 
 void set_colors(uint8_t foreground, uint8_t background)
 {
     attribute = background << 4 | foreground;
+}
+
+void update_cursor(int x, int y)
+{
+	uint16_t pos = y * VGA_WIDTH + x;
+
+	outb(0x3D4, 0x0F);
+	outb(0x3D5, (uint8_t) (pos & 0xFF));
+	outb(0x3D4, 0x0E);
+	outb(0x3D5, (uint8_t) ((pos >> 8) & 0xFF));
 }
 
 void scroll()
@@ -43,6 +54,16 @@ void put_char(char c)
         case '\r':
             column = 0;
             break;
+
+        case '\b':
+            column--;
+            if (column < 0)
+            {
+                column = VGA_WIDTH - 1;
+                row--;
+            }
+            VGA_BUFFER[row * VGA_WIDTH + column] = attribute << 8 | '\0';
+            break;
     
         default:
             VGA_BUFFER[row * VGA_WIDTH + column] = attribute << 8 | c;
@@ -60,6 +81,8 @@ void put_char(char c)
     {
         scroll();
     }
+
+    update_cursor(column, row);
 }
 
 void print_string(char string[])
