@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stddef.h>
+#include <string.h>
 
 #define VGA_WIDTH  80
 #define VGA_HEIGHT 25
@@ -13,6 +14,17 @@ static uint8_t attribute = 0;
 void set_colors(uint8_t foreground, uint8_t background)
 {
     attribute = background << 4 | foreground;
+}
+
+void scroll()
+{
+    memcpy((void* restrict)VGA_BUFFER, (void* restrict)(VGA_BUFFER + VGA_WIDTH), VGA_HEIGHT * VGA_WIDTH - VGA_HEIGHT);
+    for(size_t col = 0; col < VGA_WIDTH; col++)
+    {
+        VGA_BUFFER[(VGA_HEIGHT - 1) * VGA_WIDTH + col] = attribute << 8 | '\0';
+    }    
+    row--;
+    column = 0;
 }
 
 void put_char(char c)
@@ -35,10 +47,15 @@ void put_char(char c)
         default:
             VGA_BUFFER[row * VGA_WIDTH + column] = attribute << 8 | c;
 
-            if(++column == VGA_WIDTH)
+            if (++column == VGA_WIDTH)
             {
                 column = 0;
                 row++;
+            }
+
+            if (row == VGA_HEIGHT)
+            {
+                scroll();
             }
             break;
     }
