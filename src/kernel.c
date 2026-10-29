@@ -2,12 +2,15 @@
 #include <stddef.h>
 #include <system.h>
 #include <vga_terminal.h>
+#include <keyboard.h>
 
 extern void main()
 {
 
     // set up IDT
     idt_install();
+
+    keyboard_init();
 
     char name[] = "lameOS - by Adam Snajdr\n";
 
@@ -16,10 +19,10 @@ extern void main()
 
     print_string(name);
 
-    outb(0x43, 0x36);
-
-    outb(0x40, 0xFF); // Low byte of 65535
-    outb(0x40, 0xFF); // High byte of 65535
+    while(1)
+    {
+        put_char(keyboard_getchar());
+    }
 
     return;
 }

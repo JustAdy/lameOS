@@ -101,15 +101,10 @@ global timer_irq_stub
 timer_irq_stub:
     push 32
     push 32
-    jmp common_IRQ
+    jmp common_ISR
 
-global common_IRQ
-extern IRQ
-common_IRQ:
-    pushad
-    push esp
-    call IRQ
-    add esp, 4
-    popad
-    add esp, 8
-    iret
+global keyboard_irq_stub
+keyboard_irq_stub:
+    push 33
+    push 33
+    jmp common_ISR
