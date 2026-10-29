@@ -1,8 +1,8 @@
 #include <stdint.h>
 #include <stddef.h>
-#include <system.h>
-#include <vga_terminal.h>
-#include <keyboard.h>
+#include <kernel/system.h>
+#include <io/vga_terminal.h>
+#include <io/keyboard.h>
 
 extern void main()
 {
