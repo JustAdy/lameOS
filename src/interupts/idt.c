@@ -1,8 +1,8 @@
-#include <system.h>
-#include <string.h>
+#include <kernel/system.h>
+#include <kernel/string.h>
 #include <stdint.h>
-#include <vga_terminal.h>
-#include <keyboard.h>
+#include <io/vga_terminal.h>
+#include <io/keyboard.h>
 
 void pic_remap();
 

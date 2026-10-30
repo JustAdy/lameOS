@@ -1,16 +1,19 @@
 #include <stdint.h>
 #include <stddef.h>
-#include <system.h>
-#include <vga_terminal.h>
-#include <keyboard.h>
+#include <kernel/system.h>
+#include <kernel/string.h>
+#include <io/vga_terminal.h>
+#include <io/keyboard.h>
+#include <shell/shell.h>
 
 extern void main()
 {
-
     // set up IDT
     idt_install();
 
     keyboard_init();
+
+    alloc_init();
 
     char name[] = "lameOS - by Adam Snajdr\n";
 
@@ -19,10 +22,9 @@ extern void main()
 
     print_string(name);
 
-    while(1)
-    {
-        put_char(keyboard_getchar());
-    }
+    shell_init();
+
+    shell_loop();
 
     return;
 }
