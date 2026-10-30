@@ -5,6 +5,8 @@
 #include <kernel/system.h>
 #include <kernel/string.h>
 
+#define BUFFER_SIZE 128
+
 char* command_buffer;
 uint8_t index;
 
@@ -12,7 +14,7 @@ void execute_comman();
 
 void shell_init()
 {
-    command_buffer = malloc(128);
+    command_buffer = malloc(BUFFER_SIZE);
 }
 
 void shell_loop()
@@ -50,8 +52,12 @@ void shell_loop()
                 break;
             
             default:
-                put_char(c);
-                index++;
+                if (index < BUFFER_SIZE)
+                {
+                    command_buffer[index] = c;
+                    put_char(c);
+                    index++;
+                }
                 break;
             }
         }
