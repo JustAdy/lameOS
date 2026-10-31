@@ -6,6 +6,7 @@
 #include <io/keyboard.h>
 #include <shell/shell.h>
 #include <io/disk_driver.h>
+#include <kernel/lamefs.h>
 
 extern void main()
 {
@@ -20,6 +21,8 @@ extern void main()
 
     set_colors(WHITE, BLUE);
     clear_screen();
+
+    initialize_lameFS();
 
     print_string(name);
 
