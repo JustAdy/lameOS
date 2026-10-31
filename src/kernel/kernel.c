@@ -21,24 +21,7 @@ extern void main()
     set_colors(WHITE, BLUE);
     clear_screen();
 
-    //print_string(name);
-
-    char write[512];
-
-    char read[512];
-
-    write[0] = 'l';
-    write[1] = 'a';
-    write[2] = 'm';
-    write[3] = 'e';
-    write[4] = 'O';
-    write[5] = 'S';
-    write[6] = '\0';
-
-    write_sector(64, (uint16_t*)write);
-    read_sector(64, (uint16_t*)read);
-
-    print_string(read);
+    print_string(name);
 
     shell_init();
 

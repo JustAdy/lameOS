@@ -48,10 +48,7 @@ $(BUILD_DIR)/full_kernel.bin: $(BUILD_DIR)/full_kernel.elf
 $(BUILD_DIR)/boot.bin: $(SRC_DIR)/bootloader/bootloader.asm | $(BUILD_DIR)
 	$(NASM) $< -f bin -o $@
 
-$(BUILD_DIR)/zeroes.bin: $(SRC_DIR)/bootloader/zeroes.asm | $(BUILD_DIR)
-	$(NASM) $< -f bin -o $@
-
-$(BUILD_DIR)/os.bin: $(BUILD_DIR)/boot.bin $(BUILD_DIR)/full_kernel.bin $(BUILD_DIR)/zeroes.bin
+$(BUILD_DIR)/os.bin: $(BUILD_DIR)/boot.bin $(BUILD_DIR)/full_kernel.bin
 	cat $^ > $@
 
 $(BUILD_DIR)/os.img: $(BUILD_DIR)/os.bin
