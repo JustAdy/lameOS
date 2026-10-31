@@ -137,7 +137,7 @@ void timer_irq()
 
 
 
-void ISR(struct stack_frame *frame)
+void ISR(struct stack_frame* frame)
 {
     if (frame->vector < 32)
     {

@@ -47,6 +47,9 @@ s - special   - 3
 
 5 bits - reserved
 
+
+*0bggguuutt 0b00000ooo*
+
 #### Owner
 
 1 byte - user
@@ -94,7 +97,7 @@ s - special   - 3
 
 2 bytes - Address of the next sector
 
-0x0000 - End of file. No more sectors. Address of the first root directory sector e.g. not a valid next address
+0x0000 - End of file. No more sectors. (Address of the bootloader e.g. not a valid next address)
 
 ___
 

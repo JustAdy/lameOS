@@ -7,6 +7,7 @@
 #include <shell/shell.h>
 #include <io/disk_driver.h>
 #include <kernel/lamefs.h>
+#include <bool.h>
 
 extern void main()
 {
@@ -22,9 +23,11 @@ extern void main()
     set_colors(WHITE, BLUE);
     clear_screen();
 
-    initialize_lameFS();
-
     print_string(name);
+
+    bool lameFSInitializationOK = initialize_lameFS();
+
+    if (lameFSInitializationOK == false) print_string("Error while initializing file system. New one created!!!\n");
 
     shell_init();
 
