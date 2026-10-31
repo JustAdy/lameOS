@@ -30,6 +30,6 @@ void print_string(char* string);
 
 void print_long(long number);
 
-void clear_screen(uint8_t background);
+void clear_screen();
 
 #endif

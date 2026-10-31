@@ -132,13 +132,13 @@ void print_long(long number)
 
 }
 
-void clear_screen(uint8_t background)
+void clear_screen()
 {
     for (size_t row = 0; row < VGA_HEIGHT; row++)
     {
         for (size_t col = 0; col < VGA_WIDTH; col++)
         {
-            VGA_BUFFER[row * VGA_WIDTH + col] = background << 12 | '\0';
+            VGA_BUFFER[row * VGA_WIDTH + col] = attribute << 8 | '\0';
         }
     }
 

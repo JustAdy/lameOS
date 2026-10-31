@@ -4,13 +4,14 @@
 #include <io/vga_terminal.h>
 #include <kernel/system.h>
 #include <kernel/string.h>
+#include <shell/programs/programs.h>
 
 #define BUFFER_SIZE 128
 
 char* command_buffer;
 uint8_t index;
 
-void execute_comman();
+void execute_command(uint8_t index);
 
 void shell_init()
 {
@@ -31,6 +32,7 @@ void shell_loop()
             switch (c)
             {
             case '\e':
+                free(command_buffer, BUFFER_SIZE);
                 return;
 
             case '\b':
@@ -47,7 +49,8 @@ void shell_loop()
                 break;
 
             case '\n':
-                execute_comman();
+                command_buffer[index] = '\0';
+                execute_command(index);
                 waiting_for_command = 0;
                 break;
             
@@ -66,7 +69,21 @@ void shell_loop()
     
 }
 
-void execute_comman()
+void execute_command(uint8_t index)
 {
-    print_string("Executing command...\n");
+    size_t endIndex = 0;
+
+    for (size_t i = 0; i < index; i++)
+    {
+        char c = command_buffer[i];
+        if (c == ' ')
+        {
+            endIndex = i;
+            break;
+        }
+    }
+
+    if (memcmp(command_buffer, "echo", 4) == 0) echo(command_buffer, endIndex + 1);
+    else if (memcmp(command_buffer, "clear", 5) == 0) clear_screen();
+    else print_string("\nInvalid input!\n");
 }

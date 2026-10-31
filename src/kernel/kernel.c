@@ -18,7 +18,7 @@ extern void main()
     char name[] = "lameOS - by Adam Snajdr\n";
 
     set_colors(WHITE, BLUE);
-    clear_screen(BLUE);
+    clear_screen();
 
     print_string(name);
 
