@@ -4,13 +4,15 @@ This is a 32b operating system for learning purposes.
 # lameFS
 Custom file system for lameOS
 
+Max 32 MiB per disk
+
 1 Sector - Bootloader
 
 31 Sectors - Kernel
 
 16 Sectors - Bit array
 
-65536 - Data (First sector is the start of the root directory)
+65488 Sectors - Data (First sector is the start of the root directory)
 
 ## FILE
 

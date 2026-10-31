@@ -8,7 +8,7 @@ OBJCOPY := i686-elf-objcopy
 SRC_DIR   := src
 BUILD_DIR := build
 
-CFLAGS  := -ffreestanding -m32 -g -I$(SRC_DIR) -MMD -MP
+CFLAGS  := -ffreestanding -m32 -g -I$(SRC_DIR) -MMD -MP -masm=intel
 KERNEL_ADDR := 0x1000
 
 # Discover C files recursively.
@@ -20,7 +20,7 @@ KERNEL_OBJS := $(BUILD_DIR)/kernel_entry.o $(C_OBJS) $(BUILD_DIR)/idt_load.o $(B
 
 .PHONY: all run clean
 
-all: $(BUILD_DIR)/os.bin
+all: $(BUILD_DIR)/os.img
 
 $(BUILD_DIR):
 	mkdir -p $@
@@ -54,8 +54,13 @@ $(BUILD_DIR)/zeroes.bin: $(SRC_DIR)/bootloader/zeroes.asm | $(BUILD_DIR)
 $(BUILD_DIR)/os.bin: $(BUILD_DIR)/boot.bin $(BUILD_DIR)/full_kernel.bin $(BUILD_DIR)/zeroes.bin
 	cat $^ > $@
 
-run: $(BUILD_DIR)/os.bin
-	$(QEMU) -cpu qemu32 -drive format=raw,file=$<,index=0,if=floppy -m 128M
+$(BUILD_DIR)/os.img: $(BUILD_DIR)/os.bin
+	dd if=/dev/zero of=$@ bs=1M count=32
+	dd if=$< of=$@ conv=notrunc
+
+
+run: $(BUILD_DIR)/os.img
+	$(QEMU) -cpu qemu32 -drive format=raw,file=$<,index=0,media=disk -m 128M
 
 clean:
 	rm -rf $(BUILD_DIR)

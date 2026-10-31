@@ -11,18 +11,28 @@ void idt_set_gate(
     unsigned char flags
 );
 
-static inline void outb(uint16_t port, uint8_t value)
+static inline void outb(uint16_t port, uint8_t val)
 {
-    __asm__ volatile ("outb %0, %1"
-                      :
-                      : "a"(value), "Nd"(port));
+    __asm__ volatile ("out dx, al" : : "d"(port), "a"(val));
 };
 
 static inline uint8_t inb(uint16_t port)
 {
-    uint8_t value;
-    __asm__ volatile ("inb %1, %0" : "=a"(value) : "Nd"(port));
-    return value;
+    uint8_t ret;
+    __asm__ volatile ("in al, dx" : "=a"(ret) :"d"(port));
+    return ret;
+}
+
+static inline void outw(uint16_t port, uint16_t val)
+{
+    __asm__ volatile ("out dx, ax" : : "d"(port), "a"(val));
+};
+
+static inline uint16_t inw(uint16_t port)
+{
+    uint16_t ret;
+    __asm__ volatile ("in ax, dx" : "=a"(ret) :"d"(port));
+    return ret;
 }
 
 void idt_install(void);
