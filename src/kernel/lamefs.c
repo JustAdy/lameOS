@@ -12,6 +12,7 @@
 #define DATA_SECTION_START 48
 #define FILE_DATA_SIZE (512 - sizeof(struct lameFSHeader))
 #define START_FILE_DATA ((uint8_t*)sector + sizeof(struct lameFSHeader))
+#define MAX_ENTRIES_PER_DIR 40
 
 uint32_t lamefs_bitmap[2048];
 uint16_t sector[256];
@@ -119,13 +120,13 @@ uint16_t find_empty_sector()
 
 /// @brief Writes a file to disk
 /// @param data Data of the file. The pointer 
-/// @param size Size of data im bytes
+/// @param size Size of data in bytes
 /// @param name Name of the file
 /// @param type Dir/Link/File/Special
 /// @param ownerId Owner ID
 /// @param groupId Group ID
-/// @return True if file was writen successfully. False if an error occured.
-bool write_file(void* data, size_t size, char name[10], uint8_t type, uint8_t ownerId, uint8_t groupId)
+/// @return Returns start address of the file. If writing failed, it returns 0x0000
+uint16_t write_file(void* data, size_t size, char name[10], uint8_t type, uint8_t ownerId, uint8_t groupId)
 {
     // Format header
     memcpy(header->fileName, name, 10);
@@ -144,7 +145,7 @@ bool write_file(void* data, size_t size, char name[10], uint8_t type, uint8_t ow
 
     header->startAddress = find_empty_sector();
 
-    if (header->startAddress == 0x0000) return false;
+    if (header->startAddress == 0x0000) return 0x0000;
 
     uint16_t address = header->startAddress;
     uint16_t nextAddress;
@@ -172,10 +173,10 @@ bool write_file(void* data, size_t size, char name[10], uint8_t type, uint8_t ow
         address = nextAddress;
     } while (nextAddress != 0);
 
-    return true;
+    return header->startAddress;
 }
 
-/// @brief Reads file from disk
+/// @brief Reads file from disk and deletes it. At start of data is a 28 byte header
 /// @return Allocated pointer to data. When the file is not used anymore, you MUST free it!!!
 void* read_file(uint16_t startAddress)
 {
@@ -185,10 +186,18 @@ void* read_file(uint16_t startAddress)
     
     void* data = malloc(size);
 
+    memcpy(data, header, sizeof(struct lameFSHeader));
+
+    lamefs_bitmap[startAddress / 32] &= ~(1 << (startAddress % 32));
+
     for (size_t i = 0; i < header->size; i++)
     {
-        memcpy(data + i * FILE_DATA_SIZE, START_FILE_DATA, FILE_DATA_SIZE);
-        if (header->nextAddress != 0x0000) read_sector(header->nextAddress, sector);
+        memcpy(data + i * FILE_DATA_SIZE + sizeof(struct lameFSHeader), START_FILE_DATA, FILE_DATA_SIZE);
+        if (header->nextAddress != 0x0000)
+        {
+            read_sector(header->nextAddress, sector);
+            lamefs_bitmap[header->nextAddress / 32] &= 0xfffffffe << header->nextAddress % 32;
+        }
     }
 
     return data;
@@ -197,13 +206,30 @@ void* read_file(uint16_t startAddress)
 struct dir_entry
 {
     char fileName[10];
-    uint16_t startAdress;
+    uint16_t startAddress;
 }__attribute__((packed));
 
 
-/*
 void add_dir_entry(uint16_t dirStartAddress, char fileName[10], uint16_t fileStartAddress)
 {
-    read_sector(dirStartAddress)
+    struct lameFSHeader* header = read_file(dirStartAddress);
+    struct dir_entry* dir_sector = (struct dir_entry*)((uint8_t*)(header) + sizeof(struct lameFSHeader));
+
+    size_t entryCount = 0;
+    while (dir_sector[entryCount].startAddress != 0x0000) entryCount++;
+
+    if (entryCount < MAX_ENTRIES_PER_DIR)
+    {
+        memcpy(dir_sector[entryCount].fileName, fileName, 10);
+        dir_sector[entryCount].startAddress = fileStartAddress;
+    }
+
+    entryCount++;
+    
+    struct dir_entry* dir = malloc(sizeof(struct dir_entry) * entryCount);
+    memcpy(dir, dir_sector,  sizeof(struct dir_entry) * entryCount);
+
+    write_file(dir, sizeof(struct dir_entry) * entryCount, header->fileName, header->type_permisions & 0b011, header->ownerId, header->groupId);
+    free(header, sizeof(struct lameFSHeader) + FILE_DATA_SIZE);
+    free(dir, sizeof(struct dir_entry) * entryCount);
 }
-*/

@@ -31,7 +31,7 @@ SECTIONS
     __kernel_end = .;
 
     __heap_start = __kernel_end;
-    __heap_end = __heap_start + 0x10000;
+    __heap_end = __heap_start + 0x40000;
 
     /DISCARD/ :
     {

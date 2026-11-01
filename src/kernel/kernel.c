@@ -31,12 +31,9 @@ extern void main()
 
     char data[] = "This is yet another text file\n";
 
-    
-    write_file(data, sizeof(data), "TEST2.TXT ", FILE, 0x69, 0x69);
-    
-    char* readData = read_file(49);
+    uint16_t start = write_file(data, sizeof(data), "TEST2.TXT ", FILE, 0x69, 0x69);
 
-    print_string(readData);
+    add_dir_entry(48, "TEST2.TXT ", start);
 
     shell_init();
 

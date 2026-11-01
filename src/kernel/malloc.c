@@ -3,14 +3,16 @@
 #include <kernel/system.h>
 #include <kernel/string.h>
 
+#define BITMAP_SIZE (4 * 2048)
+
 extern uint8_t __heap_start[];
 extern uint8_t __heap_end[];
 
-uint8_t bitmap[2048];
+uint8_t bitmap[BITMAP_SIZE];
 
 void alloc_init()
 {
-    memset(bitmap, 0, 2048);
+    memset(bitmap, 0, BITMAP_SIZE);
 }
 
 void* malloc(size_t bytes)
@@ -22,7 +24,7 @@ void* malloc(size_t bytes)
     size_t count = 0;
     size_t startIndex = 0;
 
-    for (size_t index = 0; index < 2048; index++)
+    for (size_t index = 0; index < BITMAP_SIZE; index++)
     {
         if (bitmap[index] == 0)
         {
@@ -58,7 +60,7 @@ void free(void* ptr, size_t bytes)
     size_t index  = offset / 32;
     size_t blocks = (bytes + 31) / 32;
 
-    if (index >= 2048 || blocks > 2048 - index) return;   // out of range
+    if (index >= BITMAP_SIZE || blocks > BITMAP_SIZE - index) return;   // out of range
 
     memset(&bitmap[index], 0x00, blocks);
 }

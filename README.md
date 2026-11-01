@@ -29,7 +29,7 @@ No file extension
 
 2 bits
 
-d - directory - 0
+d - directory - 0 - for now max 40 entries (one entry is 12 bytes)
 
 l - link      - 1
 
