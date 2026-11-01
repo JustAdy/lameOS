@@ -10,7 +10,8 @@
 
 #define BITMAP_START 32
 #define DATA_SECTION_START 48
-#define FILE_DATA (512 - sizeof(struct lameFSHeader))
+#define FILE_DATA_SIZE (512 - sizeof(struct lameFSHeader))
+#define START_FILE_DATA ((uint8_t*)sector + sizeof(struct lameFSHeader))
 
 uint32_t lamefs_bitmap[2048];
 uint16_t sector[256];
@@ -116,6 +117,13 @@ uint16_t find_empty_sector()
     return 0x0000;
 }
 
+/// @brief Writes a file to disk
+/// @param data Data of the file. The pointer 
+/// @param size Size of data im bytes
+/// @param name Name of the file
+/// @param type Dir/Link/File/Special
+/// @param ownerId Owner ID
+/// @param groupId Group ID
 /// @return True if file was writen successfully. False if an error occured.
 bool write_file(void* data, size_t size, char name[10], uint8_t type, uint8_t ownerId, uint8_t groupId)
 {
@@ -130,8 +138,8 @@ bool write_file(void* data, size_t size, char name[10], uint8_t type, uint8_t ow
     header->modificationTime = 0;
     header->modificationDate = 0;
 
-    size_t sectorSize = size / FILE_DATA;
-    if (size % FILE_DATA > 0) sectorSize++;
+    size_t sectorSize = size / FILE_DATA_SIZE;
+    if (size % FILE_DATA_SIZE > 0) sectorSize++;
     header->size = (uint16_t)sectorSize;
 
     header->startAddress = find_empty_sector();
@@ -144,24 +152,58 @@ bool write_file(void* data, size_t size, char name[10], uint8_t type, uint8_t ow
     // Format data
     do
     {
-        if (size <= FILE_DATA) 
+        if (size <= FILE_DATA_SIZE) 
         {
             nextAddress = 0x0000;
-            memcpy((uint8_t*)sector + sizeof(struct lameFSHeader), data, size);
+            memset(START_FILE_DATA, '\0', FILE_DATA_SIZE);
+            memcpy(START_FILE_DATA, data, size);
         }
         else 
         {
             nextAddress = find_empty_sector();
             if (nextAddress == 0x0000) return false;
-            memcpy((uint8_t*)sector + sizeof(struct lameFSHeader), data, FILE_DATA);
+            memcpy(START_FILE_DATA, data, FILE_DATA_SIZE);
         }
 
         header->nextAddress = nextAddress;
         write_sector(address, sector);
 
-        size -= FILE_DATA;
+        size -= FILE_DATA_SIZE;
         address = nextAddress;
     } while (nextAddress != 0);
 
     return true;
 }
+
+/// @brief Reads file from disk
+/// @return Allocated pointer to data. When the file is not used anymore, you MUST free it!!!
+void* read_file(uint16_t startAddress)
+{
+    read_sector(startAddress, sector);
+
+    size_t size = header->size * FILE_DATA_SIZE;
+    
+    void* data = malloc(size);
+
+    for (size_t i = 0; i < header->size; i++)
+    {
+        memcpy(data + i * FILE_DATA_SIZE, START_FILE_DATA, FILE_DATA_SIZE);
+        if (header->nextAddress != 0x0000) read_sector(header->nextAddress, sector);
+    }
+
+    return data;
+}
+
+struct dir_entry
+{
+    char fileName[10];
+    uint16_t startAdress;
+}__attribute__((packed));
+
+
+/*
+void add_dir_entry(uint16_t dirStartAddress, char fileName[10], uint16_t fileStartAddress)
+{
+    read_sector(dirStartAddress)
+}
+*/

@@ -29,9 +29,14 @@ extern void main()
 
     if (lameFSInitializationOK == false) print_string("Error while initializing file system. New one created!!!\n");
 
-    char data[] = "This is yet another text file";
+    char data[] = "This is yet another text file\n";
 
+    
     write_file(data, sizeof(data), "TEST2.TXT ", FILE, 0x69, 0x69);
+    
+    char* readData = read_file(49);
+
+    print_string(readData);
 
     shell_init();
 
