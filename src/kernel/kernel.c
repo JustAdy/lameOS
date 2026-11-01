@@ -16,13 +16,13 @@ extern void main()
 
     keyboard_init();
 
-    alloc_init();
-
+    
     char name[] = "lameOS - by Adam Snajdr\n";
-
+    
     set_colors(WHITE, BLUE);
     clear_screen();
-
+    alloc_init();
+    
     print_string(name);
 
     bool lameFSInitializationOK = initialize_lameFS();

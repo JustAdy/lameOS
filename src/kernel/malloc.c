@@ -3,7 +3,7 @@
 #include <kernel/system.h>
 #include <kernel/string.h>
 
-#define BITMAP_SIZE (4 * 2048)
+#define BITMAP_SIZE (2048)
 
 extern uint8_t __heap_start[];
 extern uint8_t __heap_end[];

@@ -21,17 +21,20 @@ SECTIONS
         *(.data*)
     }
 
-    .bss ALIGN(4K) :
+    .bss 0x8000 :
     {
+        __bss_start = .;
         *(COMMON)
         *(.bss*)
+        __bss_end = .;
     }
 
     . = ALIGN(4K);
     __kernel_end = .;
 
-    __heap_start = __kernel_end;
-    __heap_end = __heap_start + 0x40000;
+    /* Move heap to a fixed, separate region */
+    __heap_start = 0x20000;
+    __heap_end = 0x30000;
 
     /DISCARD/ :
     {

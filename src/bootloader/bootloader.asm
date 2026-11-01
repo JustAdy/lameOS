@@ -3,7 +3,7 @@ KERNEL_LOCATION equ 0x1000
 
 mov [BOOT_DISK], dl
 
-xor ax, ax                          
+xor ax, ax
 mov es, ax
 mov ds, ax
 mov bp, 0x8000
