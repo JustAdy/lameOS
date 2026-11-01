@@ -87,7 +87,7 @@ s - special   - 3
 
 #### Size
 
-2 bytes - Size in clusters
+2 bytes - Size in sectors
 
 #### File start address
 
