@@ -29,11 +29,25 @@ extern void main()
 
     if (lameFSInitializationOK == false) print_string("Error while initializing file system. New one created!!!\n");
 
-    char data[] = "This is yet another text file\n";
+    char data[1024];
 
-    uint16_t start = write_file(data, sizeof(data), "TEST2.TXT ", FILE, 0x69, 0x69);
+    for (size_t i = 0; i < 1024; i++)
+    {
+        data[i] =  '0' + (i % 10);
+    }
+    
 
-    add_dir_entry(48, "TEST2.TXT ", start);
+
+    uint16_t start = write_file(data, sizeof(data), "TEST3.TXT ", FILE, 0x69, 0x69);
+
+    add_dir_entry(48, "TEST3.TXT ", start);
+
+    char* read = read_file(49);
+
+    for (size_t i = 0; i < 1024; i++)
+    {
+        put_char(read[i]);
+    }
 
     shell_init();
 

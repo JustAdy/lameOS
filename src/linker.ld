@@ -1,3 +1,4 @@
+
 OUTPUT_FORMAT(elf32-i386)
 ENTRY(_start)
 
@@ -21,7 +22,10 @@ SECTIONS
         *(.data*)
     }
 
-    .bss 0x8000 :
+    /* Reserve 0x7C00–0x7DFF for the bootloader and its GDT. */
+    . = 0x8000;
+
+    .bss (NOLOAD) :
     {
         __bss_start = .;
         *(COMMON)
@@ -32,7 +36,7 @@ SECTIONS
     . = ALIGN(4K);
     __kernel_end = .;
 
-    /* Move heap to a fixed, separate region */
+    /* Kernel heap: 64 KiB */
     __heap_start = 0x20000;
     __heap_end = 0x30000;
 

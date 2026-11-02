@@ -5,6 +5,8 @@
 
 #define BITMAP_SIZE (2048)
 
+// TODO: Do it better
+
 extern uint8_t __heap_start[];
 extern uint8_t __heap_end[];
 

@@ -20,6 +20,14 @@ uint16_t sector[256];
 bool bitmap_intialized = false;
 bool dir_initialized = false;
 
+bool copy_data(void* dataPtr, size_t size, uint16_t* nextAddressPtr);
+bool initialize_lameFS();
+uint16_t find_empty_sector();
+uint16_t write_file(void* data, size_t size, char name[10], uint8_t type, uint8_t ownerId, uint8_t groupId);
+void* read_file(uint16_t startAddress);
+void add_dir_entry(uint16_t dirStartAddress, char fileName[10], uint16_t fileStartAddress);
+void update_file_data(uint16_t startAddress, void* data, size_t size);
+
 struct lameFSHeader
 {
     char fileName[10];
@@ -40,6 +48,34 @@ struct lameFSHeader* header = (struct lameFSHeader*)sector;
 static inline uint16_t create_type_permisions(uint8_t type, uint8_t user, uint8_t group, uint8_t other)
 {
     return other << 8 | group << 5 | user << 2  | type;
+}
+
+static inline void clear_sector(uint16_t address)
+{
+    lamefs_bitmap[address / 32] &= ~(1 << (address % 32));
+}
+
+static inline void set_sector(uint16_t address)
+{
+    lamefs_bitmap[address / 32] |= 1 << address % 32;
+}
+
+bool copy_data(void* dataPtr, size_t size, uint16_t* nextAddressPtr)
+{
+    if (size <= FILE_DATA_SIZE) 
+        {
+            *nextAddressPtr = 0x0000;
+            memset(START_FILE_DATA, '\0', FILE_DATA_SIZE);
+            memcpy(START_FILE_DATA, dataPtr, size);
+        }
+        else 
+        {
+            *nextAddressPtr = find_empty_sector();
+            if (*nextAddressPtr == 0x0000) return false;
+            memcpy(START_FILE_DATA, dataPtr, FILE_DATA_SIZE);
+        }
+
+    return true;
 }
 
 /// @brief Checks if the file system is initialized. If not, initialize it. Initialized system has first 49 bits in the bitmap set and the root directory is initialized.
@@ -107,7 +143,7 @@ uint16_t find_empty_sector()
         {
             if ((lamefs_bitmap[i] & (1 << j)) == 0)
             {
-                lamefs_bitmap[i] |= 1 << j;
+                set_sector(i * 32 + j);
                 write_sector(BITMAP_START + i / 128, (uint16_t*)&lamefs_bitmap[i / 128]);
                 return i * 32 + j;
             }
@@ -116,6 +152,29 @@ uint16_t find_empty_sector()
     }
 
     return 0x0000;
+}
+
+/// @brief Formats a lameFS header
+/// @returns Allocated lameFS header. It must be freed when not used.
+struct lameFSHeader* format_header(char name[10], uint8_t type, uint8_t ownerId, uint8_t groupId, uint16_t size, uint16_t startAddress, uint16_t nextAddress)
+{
+    struct lameFSHeader* header = malloc(sizeof(struct lameFSHeader));
+
+    memcpy(header->fileName, name, 10);
+    header->type_permisions = create_type_permisions(type, 7, 7, 7);
+    header->ownerId = ownerId;
+    header->groupId = groupId;
+
+    header->creationTime = 0;   // TODO: Make use of real time
+    header->creationDate = 0;
+    header->modificationTime = 0;
+    header->modificationDate = 0;
+
+    header->size = size;
+    header->startAddress = startAddress;
+    header->nextAddress = nextAddress;
+
+    return header;
 }
 
 /// @brief Writes a file to disk
@@ -128,48 +187,33 @@ uint16_t find_empty_sector()
 /// @return Returns start address of the file. If writing failed, it returns 0x0000
 uint16_t write_file(void* data, size_t size, char name[10], uint8_t type, uint8_t ownerId, uint8_t groupId)
 {
-    // Format header
-    memcpy(header->fileName, name, 10);
-    header->type_permisions = create_type_permisions(type, 7, 7, 7);
-    header->ownerId = ownerId;
-    header->groupId = groupId;
-
-    header->creationTime = 0;   // TODO: Make use of real time
-    header->creationDate = 0;
-    header->modificationTime = 0;
-    header->modificationDate = 0;
-
     size_t sectorSize = size / FILE_DATA_SIZE;
     if (size % FILE_DATA_SIZE > 0) sectorSize++;
-    header->size = (uint16_t)sectorSize;
 
-    header->startAddress = find_empty_sector();
+    uint16_t address = find_empty_sector();
 
-    if (header->startAddress == 0x0000) return 0x0000;
-
-    uint16_t address = header->startAddress;
+    if (address == 0x0000) return 0x0000;
     uint16_t nextAddress;
+
+    struct lameFSHeader* formated_header = format_header(name, type, ownerId, groupId, sectorSize, address, 0x0000);
+
+    memcpy(sector, formated_header, sizeof(struct lameFSHeader));
+
+    free(formated_header, sizeof(struct lameFSHeader));
+
+    struct lameFSHeader* header = (struct lameFSHeader*)sector;
+
+    uint8_t* dataPtr = data;
 
     // Format data
     do
     {
-        if (size <= FILE_DATA_SIZE) 
-        {
-            nextAddress = 0x0000;
-            memset(START_FILE_DATA, '\0', FILE_DATA_SIZE);
-            memcpy(START_FILE_DATA, data, size);
-        }
-        else 
-        {
-            nextAddress = find_empty_sector();
-            if (nextAddress == 0x0000) return false;
-            memcpy(START_FILE_DATA, data, FILE_DATA_SIZE);
-        }
-
+        if(!copy_data(dataPtr, size, &nextAddress)) return false;
         header->nextAddress = nextAddress;
         write_sector(address, sector);
 
-        size -= FILE_DATA_SIZE;
+        dataPtr += FILE_DATA_SIZE;
+        size -= FILE_DATA_SIZE;  
         address = nextAddress;
     } while (nextAddress != 0);
 
@@ -196,11 +240,16 @@ void* read_file(uint16_t startAddress)
         if (header->nextAddress != 0x0000)
         {
             read_sector(header->nextAddress, sector);
-            lamefs_bitmap[header->nextAddress / 32] &= 0xfffffffe << header->nextAddress % 32;
+            lamefs_bitmap[header->nextAddress / 32] &= ~(1 << (header->nextAddress % 32));
         }
     }
 
     return data;
+}
+
+void update_file_data(uint16_t startAddress, void* data, size_t size)
+{
+
 }
 
 struct dir_entry
