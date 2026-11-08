@@ -26,7 +26,7 @@ uint16_t find_empty_sector();
 uint16_t write_file(void* data, size_t size, char name[10], uint8_t type, uint8_t ownerId, uint8_t groupId);
 void* read_file(uint16_t startAddress);
 void add_dir_entry(uint16_t dirStartAddress, char fileName[10], uint16_t fileStartAddress);
-void update_file_data(uint16_t startAddress, void* data, size_t size);
+uint16_t update_file_data(uint16_t startAddress, void* data, size_t size);
 
 struct lameFSHeader
 {
@@ -63,17 +63,17 @@ static inline void set_sector(uint16_t address)
 bool copy_data(void* dataPtr, size_t size, uint16_t* nextAddressPtr)
 {
     if (size <= FILE_DATA_SIZE) 
-        {
-            *nextAddressPtr = 0x0000;
-            memset(START_FILE_DATA, '\0', FILE_DATA_SIZE);
-            memcpy(START_FILE_DATA, dataPtr, size);
-        }
-        else 
-        {
-            *nextAddressPtr = find_empty_sector();
-            if (*nextAddressPtr == 0x0000) return false;
-            memcpy(START_FILE_DATA, dataPtr, FILE_DATA_SIZE);
-        }
+    {
+        *nextAddressPtr = 0x0000;
+        memset(START_FILE_DATA, '\0', FILE_DATA_SIZE);
+        memcpy(START_FILE_DATA, dataPtr, size);
+    }
+    else 
+    {
+        *nextAddressPtr = find_empty_sector();
+        if (*nextAddressPtr == 0x0000) return false;
+        memcpy(START_FILE_DATA, dataPtr, FILE_DATA_SIZE);
+    }
 
     return true;
 }
@@ -201,8 +201,6 @@ uint16_t write_file(void* data, size_t size, char name[10], uint8_t type, uint8_
 
     free(formated_header, sizeof(struct lameFSHeader));
 
-    struct lameFSHeader* header = (struct lameFSHeader*)sector;
-
     uint8_t* dataPtr = data;
 
     // Format data
@@ -216,6 +214,11 @@ uint16_t write_file(void* data, size_t size, char name[10], uint8_t type, uint8_
         size -= FILE_DATA_SIZE;  
         address = nextAddress;
     } while (nextAddress != 0);
+
+    for (size_t i = 0; i < 16; i++)
+    {
+        write_sector(BITMAP_START + i, (uint16_t*)(lamefs_bitmap + i * 128));
+    } 
 
     return header->startAddress;
 }
@@ -247,9 +250,81 @@ void* read_file(uint16_t startAddress)
     return data;
 }
 
-void update_file_data(uint16_t startAddress, void* data, size_t size)
+uint16_t update_file_data(uint16_t startAddress, void* data, size_t size)
 {
+    size_t sectorSize = size / FILE_DATA_SIZE;
+    if (size % FILE_DATA_SIZE > 0) sectorSize++;
 
+    uint16_t address = startAddress;
+    uint8_t* dataPtr = data;
+
+    bool updating = true;
+    bool EOFClearBitmap = false;
+
+    
+    uint16_t nextAddress;
+    uint16_t nextAddressToUnset;
+    
+    // Format data
+    do
+    {
+        if (updating)
+        {
+            read_sector(address, sector);
+            nextAddress = header->nextAddress;
+            if (nextAddress == 0x0000)
+            {
+                updating = false;
+                nextAddress = find_empty_sector();
+                if (nextAddress == 0x0000) return 0x0000;
+            }
+        }
+        else // if new size is bigger that the old one
+        {
+            nextAddress = find_empty_sector();
+            if (nextAddress == 0x0000) return 0x0000;
+        }
+
+        if (size <= FILE_DATA_SIZE) 
+        {
+            nextAddress = 0x0000;
+            memset(START_FILE_DATA, '\0', FILE_DATA_SIZE);
+            memcpy(START_FILE_DATA, dataPtr, size);
+
+            EOFClearBitmap = true;
+            nextAddressToUnset = header->nextAddress;
+        }
+        else 
+        {
+            memcpy(START_FILE_DATA, dataPtr, FILE_DATA_SIZE);
+        }
+
+        header->nextAddress = nextAddress;
+        header->size = sectorSize;
+        write_sector(address, sector);
+
+        if (EOFClearBitmap && nextAddressToUnset != 0x000)
+        {
+            // unset bitmap when updating with smaller file
+            while (nextAddressToUnset > 0x0000)
+            {
+                clear_sector(nextAddressToUnset);
+                read_sector(nextAddressToUnset, sector);
+                nextAddressToUnset = header->nextAddress;
+            }
+        }
+
+        dataPtr += FILE_DATA_SIZE;
+        size -= FILE_DATA_SIZE;  
+        address = nextAddress;
+    } while (nextAddress != 0);
+
+    for (size_t i = 0; i < 16; i++)
+    {
+        write_sector(BITMAP_START + i, (uint16_t*)(lamefs_bitmap + i * 128));
+    } 
+
+    return startAddress;
 }
 
 struct dir_entry
