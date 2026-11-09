@@ -36,9 +36,8 @@ extern void main()
         data[i] =  'a' + (i % 10);
     }
     
-
-
     uint16_t start = write_file(data, 1024, "TEST1.TXT ", FILE, 0x69, 0x69);
+    uint16_t test1 = start;
 
     add_dir_entry(48, "TEST1.TXT ", start);
 
@@ -52,6 +51,8 @@ extern void main()
     add_dir_entry(48, "TEST2.TXT ", start);
 
     update_file_data(start, data, 512);
+
+    delete_file(test1);
 
     shell_init();
 

@@ -14,6 +14,8 @@ void* read_file(uint16_t startAddress);
 
 uint16_t update_file_data(uint16_t startAddress, void* data, size_t size);
 
+void delete_file(uint16_t startAddress);
+
 void add_dir_entry(uint16_t dirStartAddress, char fileName[10], uint16_t fileStartAddress);
 
 #endif

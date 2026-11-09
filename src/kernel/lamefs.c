@@ -6,8 +6,6 @@
 #include <bool.h>
 #include <kernel/lamefs.h>
 
-#include <io/vga_terminal.h>
-
 #define BITMAP_START 32
 #define DATA_SECTION_START 48
 #define FILE_DATA_SIZE (512 - sizeof(struct lameFSHeader))
@@ -50,14 +48,22 @@ static inline uint16_t create_type_permisions(uint8_t type, uint8_t user, uint8_
     return other << 8 | group << 5 | user << 2  | type;
 }
 
-static inline void clear_sector(uint16_t address)
+static void clear_sector(uint16_t address)
 {
     lamefs_bitmap[address / 32] &= ~(1 << (address % 32));
+    for (size_t i = 0; i < 16; i++)
+    {
+        write_sector(BITMAP_START + i, (uint16_t*)(lamefs_bitmap + i * 128));
+    } 
 }
 
-static inline void set_sector(uint16_t address)
+static void set_sector(uint16_t address)
 {
     lamefs_bitmap[address / 32] |= 1 << address % 32;
+    for (size_t i = 0; i < 16; i++)
+    {
+        write_sector(BITMAP_START + i, (uint16_t*)(lamefs_bitmap + i * 128));
+    } 
 }
 
 bool copy_data(void* dataPtr, size_t size, uint16_t* nextAddressPtr)
@@ -223,7 +229,7 @@ uint16_t write_file(void* data, size_t size, char name[10], uint8_t type, uint8_
     return header->startAddress;
 }
 
-/// @brief Reads file from disk and deletes it. At start of data is a 28 byte header
+/// @brief Reads file from disk. At start of data is a 28 byte header
 /// @return Allocated pointer to data. When the file is not used anymore, you MUST free it!!!
 void* read_file(uint16_t startAddress)
 {
@@ -235,19 +241,29 @@ void* read_file(uint16_t startAddress)
 
     memcpy(data, header, sizeof(struct lameFSHeader));
 
-    lamefs_bitmap[startAddress / 32] &= ~(1 << (startAddress % 32));
-
     for (size_t i = 0; i < header->size; i++)
     {
         memcpy(data + i * FILE_DATA_SIZE + sizeof(struct lameFSHeader), START_FILE_DATA, FILE_DATA_SIZE);
         if (header->nextAddress != 0x0000)
         {
             read_sector(header->nextAddress, sector);
-            lamefs_bitmap[header->nextAddress / 32] &= ~(1 << (header->nextAddress % 32));
         }
     }
 
     return data;
+}
+
+void delete_file(uint16_t startAddress)
+{
+    read_sector(startAddress, sector);
+    uint16_t address = startAddress;
+    
+    for (size_t i = 0; i < header->size; i++)
+    {
+        clear_sector(address);
+        address = header->nextAddress;
+        read_sector(header->nextAddress, sector);
+    }
 }
 
 uint16_t update_file_data(uint16_t startAddress, void* data, size_t size)
@@ -333,9 +349,9 @@ struct dir_entry
     uint16_t startAddress;
 }__attribute__((packed));
 
-
 void add_dir_entry(uint16_t dirStartAddress, char fileName[10], uint16_t fileStartAddress)
 {
+    clear_sector(dirStartAddress); // TODO: Don't delete the dir. Need to implement update_file that also updates the header
     struct lameFSHeader* header = read_file(dirStartAddress);
     struct dir_entry* dir_sector = (struct dir_entry*)((uint8_t*)(header) + sizeof(struct lameFSHeader));
 
@@ -353,6 +369,7 @@ void add_dir_entry(uint16_t dirStartAddress, char fileName[10], uint16_t fileSta
     struct dir_entry* dir = malloc(sizeof(struct dir_entry) * entryCount);
     memcpy(dir, dir_sector,  sizeof(struct dir_entry) * entryCount);
 
+    // TODO: Don't delete the dir. Need to implement update_file that also updates the header
     write_file(dir, sizeof(struct dir_entry) * entryCount, header->fileName, header->type_permisions & 0b011, header->ownerId, header->groupId);
     free(header, sizeof(struct lameFSHeader) + FILE_DATA_SIZE);
     free(dir, sizeof(struct dir_entry) * entryCount);
