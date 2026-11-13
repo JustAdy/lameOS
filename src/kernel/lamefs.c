@@ -266,6 +266,27 @@ void delete_file(uint16_t startAddress)
     }
 }
 
+void update_file_header(uint16_t startAddress, struct lameFSHeader newHeader, bool updateName, bool updateType, bool updateOwner, bool updateGroup, bool updateCreationTime, bool updateCreationDate, bool updateModificationTime, bool updateModificationDate)
+{
+    uint16_t address = startAddress;
+    do
+    {
+        read_sector(address, sector);
+
+        if (updateName) memcpy(newHeader.fileName, header->fileName, 10);
+        if (updateType) header->type_permisions = newHeader.type_permisions;
+        if (updateOwner) header->ownerId = newHeader.ownerId;
+        if (updateGroup) header->groupId = newHeader.groupId;
+        if (updateCreationTime) header->creationTime = newHeader.creationTime;
+        if (updateCreationDate) header->creationDate = newHeader.creationDate;
+        if (updateModificationTime) header->modificationTime = newHeader.modificationTime;
+        if (updateModificationDate) header->modificationDate = newHeader.modificationDate;
+        
+        write_sector(address, sector);
+        address = header->nextAddress;
+    } while (header->nextAddress != 0x0000);
+}
+
 uint16_t update_file_data(uint16_t startAddress, void* data, size_t size)
 {
     size_t sectorSize = size / FILE_DATA_SIZE;
@@ -351,9 +372,8 @@ struct dir_entry
 
 void add_dir_entry(uint16_t dirStartAddress, char fileName[10], uint16_t fileStartAddress)
 {
-    clear_sector(dirStartAddress); // TODO: Don't delete the dir. Need to implement update_file that also updates the header
-    struct lameFSHeader* header = read_file(dirStartAddress);
-    struct dir_entry* dir_sector = (struct dir_entry*)((uint8_t*)(header) + sizeof(struct lameFSHeader));
+    struct lameFSHeader* dirHeader = read_file(dirStartAddress);
+    struct dir_entry* dir_sector = (struct dir_entry*)((uint8_t*)(dirHeader) + sizeof(struct lameFSHeader));
 
     size_t entryCount = 0;
     while (dir_sector[entryCount].startAddress != 0x0000) entryCount++;
@@ -369,8 +389,8 @@ void add_dir_entry(uint16_t dirStartAddress, char fileName[10], uint16_t fileSta
     struct dir_entry* dir = malloc(sizeof(struct dir_entry) * entryCount);
     memcpy(dir, dir_sector,  sizeof(struct dir_entry) * entryCount);
 
-    // TODO: Don't delete the dir. Need to implement update_file that also updates the header
-    write_file(dir, sizeof(struct dir_entry) * entryCount, header->fileName, header->type_permisions & 0b011, header->ownerId, header->groupId);
-    free(header, sizeof(struct lameFSHeader) + FILE_DATA_SIZE);
+    update_file_data(dirHeader->startAddress, dir, sizeof(struct dir_entry) * entryCount);
+    
+    free(dirHeader, sizeof(struct lameFSHeader) + FILE_DATA_SIZE);
     free(dir, sizeof(struct dir_entry) * entryCount);
 }

@@ -41,7 +41,7 @@ extern void main()
 
     add_dir_entry(48, "TEST1.TXT ", start);
 
-    start = write_file(data, 1024, "TEST2.TXT ", FILE, 0x69, 0x69);
+    /*start = write_file(data, 1024, "TEST2.TXT ", FILE, 0x69, 0x69);
 
     for (size_t i = 0; i < 2048; i++)
     {
@@ -52,7 +52,7 @@ extern void main()
 
     update_file_data(start, data, 512);
 
-    delete_file(test1);
+    delete_file(test1);*/
 
     shell_init();
 
